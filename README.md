@@ -16,6 +16,18 @@ Flasgo is an async-first Python web framework designed as a hybrid of:
 - Python `>=3.14`
 - Tooling: `uv`, `ruff`, `ty`, `pytest`
 
+## Install in your project
+
+```bash
+uv add flasgo
+```
+
+Or with `pip`:
+
+```bash
+pip install flasgo
+```
+
 ## Quick start
 
 ```bash
