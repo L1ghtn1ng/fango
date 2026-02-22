@@ -1,6 +1,6 @@
-"""Fango public API."""
+"""Flasgo public API."""
 
-from .app import Fango
+from .app import Flasgo
 from .auth import (
     AllowAny,
     AuthResult,
@@ -21,7 +21,7 @@ from .ssrf import SSRFConfig, SSRFGuard, SSRFViolation
 __all__ = [
     "AllowAny",
     "AuthResult",
-    "Fango",
+    "Flasgo",
     "HTTPException",
     "HasScope",
     "IsAuthenticated",

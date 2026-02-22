@@ -3,23 +3,23 @@ from __future__ import annotations
 import socket
 
 import pytest
-from fango import Fango, SSRFViolation
+from flasgo import Flasgo, SSRFViolation
 
 
 def test_ssrf_blocks_private_ip_literal() -> None:
-    app = Fango()
+    app = Flasgo()
     with pytest.raises(SSRFViolation):
         app.validate_outbound_url("http://127.0.0.1/internal")
 
 
 def test_ssrf_blocks_disallowed_scheme() -> None:
-    app = Fango()
+    app = Flasgo()
     with pytest.raises(SSRFViolation):
         app.validate_outbound_url("file:///etc/passwd")
 
 
 def test_ssrf_blocks_userinfo_by_default() -> None:
-    app = Fango()
+    app = Flasgo()
     with pytest.raises(SSRFViolation):
         app.validate_outbound_url("https://user:pass@example.com/data")
 
@@ -38,7 +38,7 @@ def test_ssrf_allows_public_domain_resolution(monkeypatch: pytest.MonkeyPatch) -
         return [(socket.AF_INET, socket.SOCK_STREAM, 6, "", ("93.184.216.34", port))]
 
     monkeypatch.setattr(socket, "getaddrinfo", fake_getaddrinfo)
-    app = Fango()
+    app = Flasgo()
     assert app.validate_outbound_url("https://example.com/path") == "https://example.com/path"
 
 
@@ -55,7 +55,7 @@ def test_ssrf_blocks_domain_resolving_private_ip(monkeypatch: pytest.MonkeyPatch
         return [(socket.AF_INET, socket.SOCK_STREAM, 6, "", ("10.0.0.10", port))]
 
     monkeypatch.setattr(socket, "getaddrinfo", fake_getaddrinfo)
-    app = Fango()
+    app = Flasgo()
     with pytest.raises(SSRFViolation):
         app.validate_outbound_url("https://api.example.com/data")
 
@@ -73,7 +73,7 @@ def test_ssrf_host_allowlist_rejects_unknown_hosts(monkeypatch: pytest.MonkeyPat
         return [(socket.AF_INET, socket.SOCK_STREAM, 6, "", ("93.184.216.34", port))]
 
     monkeypatch.setattr(socket, "getaddrinfo", fake_getaddrinfo)
-    app = Fango(settings={"SSRF_ALLOWED_HOSTS": {"api.example.com"}})
+    app = Flasgo(settings={"SSRF_ALLOWED_HOSTS": {"api.example.com"}})
     with pytest.raises(SSRFViolation):
         app.validate_outbound_url("https://example.com/path")
 
@@ -91,7 +91,7 @@ def test_ssrf_allowlist_allows_expected_host(monkeypatch: pytest.MonkeyPatch) ->
         return [(socket.AF_INET, socket.SOCK_STREAM, 6, "", ("93.184.216.34", port))]
 
     monkeypatch.setattr(socket, "getaddrinfo", fake_getaddrinfo)
-    app = Fango(settings={"SSRF_ALLOWED_HOSTS": {"api.example.com"}})
+    app = Flasgo(settings={"SSRF_ALLOWED_HOSTS": {"api.example.com"}})
     assert app.validate_outbound_url("https://api.example.com/path") == "https://api.example.com/path"
 
 
@@ -108,7 +108,7 @@ def test_ssrf_blocks_unresolvable_hosts_by_default(monkeypatch: pytest.MonkeyPat
         raise socket.gaierror("no resolution")
 
     monkeypatch.setattr(socket, "getaddrinfo", fake_getaddrinfo)
-    app = Fango()
+    app = Flasgo()
     with pytest.raises(SSRFViolation):
         app.validate_outbound_url("https://unresolvable.invalid")
 
@@ -126,5 +126,5 @@ def test_ssrf_can_allow_unresolvable_hosts(monkeypatch: pytest.MonkeyPatch) -> N
         raise socket.gaierror("no resolution")
 
     monkeypatch.setattr(socket, "getaddrinfo", fake_getaddrinfo)
-    app = Fango(settings={"SSRF_ALLOW_UNRESOLVABLE_HOSTS": True})
+    app = Flasgo(settings={"SSRF_ALLOW_UNRESOLVABLE_HOSTS": True})
     assert app.validate_outbound_url("https://unresolvable.invalid") == "https://unresolvable.invalid"

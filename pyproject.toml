@@ -3,7 +3,7 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [project]
-name = "fango"
+name = "flasgo"
 version = "0.1.0"
 description = "Async-first Python web framework with Flask ergonomics and Django-inspired security defaults."
 readme = "README.md"
@@ -24,7 +24,7 @@ dev = [
 [tool.ruff]
 line-length = 120
 target-version = "py314"
-src = ["fango", "tests"]
+src = ["flasgo", "tests"]
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "B", "UP", "ASYNC", "RUF"]

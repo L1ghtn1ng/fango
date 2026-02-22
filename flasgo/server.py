@@ -82,7 +82,7 @@ async def run_dev_server(
         limit=max_request_head_bytes,
     )
     addrs = ", ".join(str(sock.getsockname()) for sock in server.sockets or [])
-    print(f"Fango dev server listening on {addrs}")
+    print(f"Flasgo dev server listening on {addrs}")
     async with server:
         await server.serve_forever()
 

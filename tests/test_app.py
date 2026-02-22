@@ -3,8 +3,8 @@ from __future__ import annotations
 import logging
 
 import pytest
-from fango import (
-    Fango,
+from flasgo import (
+    Flasgo,
     HasScope,
     IsAuthenticated,
     Request,
@@ -15,9 +15,9 @@ from fango import (
     jsonify,
     request,
 )
-from fango.app import session
-from fango.security import SecurityConfig
-from fango.testing import TestClient
+from flasgo.app import session
+from flasgo.security import SecurityConfig
+from flasgo.testing import TestClient
 
 
 def _extract_cookie(set_cookie_header: str, name: str) -> str | None:
@@ -29,7 +29,7 @@ def _extract_cookie(set_cookie_header: str, name: str) -> str | None:
 
 
 def test_async_route_and_json_response() -> None:
-    app = Fango()
+    app = Flasgo()
 
     @app.get("/ping")
     async def ping() -> dict[str, str]:
@@ -43,7 +43,7 @@ def test_async_route_and_json_response() -> None:
 
 
 def test_flask_style_route_params() -> None:
-    app = Fango()
+    app = Flasgo()
 
     @app.get("/users/<int:user_id>")
     def user(user_id: int) -> tuple[dict[str, int], int]:
@@ -57,7 +57,7 @@ def test_flask_style_route_params() -> None:
 
 
 def test_method_not_allowed() -> None:
-    app = Fango(security=SecurityConfig(csrf_enabled=False))
+    app = Flasgo(security=SecurityConfig(csrf_enabled=False))
 
     @app.get("/hello")
     def hello() -> str:
@@ -70,7 +70,7 @@ def test_method_not_allowed() -> None:
 
 
 def test_invalid_host_is_rejected() -> None:
-    app = Fango(security=SecurityConfig(csrf_enabled=False))
+    app = Flasgo(security=SecurityConfig(csrf_enabled=False))
 
     @app.get("/")
     def home() -> str:
@@ -83,7 +83,7 @@ def test_invalid_host_is_rejected() -> None:
 
 
 def test_security_headers_applied() -> None:
-    app = Fango()
+    app = Flasgo()
 
     @app.get("/")
     def home() -> str:
@@ -102,7 +102,7 @@ def test_security_headers_applied() -> None:
 
 
 def test_csrf_rejects_missing_token_on_post() -> None:
-    app = Fango()
+    app = Flasgo()
 
     @app.post("/submit")
     def submit() -> str:
@@ -115,7 +115,7 @@ def test_csrf_rejects_missing_token_on_post() -> None:
 
 
 def test_csrf_accepts_double_submit_token() -> None:
-    app = Fango()
+    app = Flasgo()
 
     @app.get("/seed")
     def seed() -> str:
@@ -127,13 +127,13 @@ def test_csrf_accepts_double_submit_token() -> None:
 
     client = TestClient(app)
     seed_response = client.get("/seed")
-    csrf_token = _extract_cookie(seed_response.headers.get("set-cookie", ""), "fango-csrf")
+    csrf_token = _extract_cookie(seed_response.headers.get("set-cookie", ""), "flasgo-csrf")
     assert csrf_token is not None
 
     response = client.post(
         "/submit",
         headers={
-            "cookie": f"fango-csrf={csrf_token}",
+            "cookie": f"flasgo-csrf={csrf_token}",
             "x-csrf-token": csrf_token,
             "origin": "http://localhost",
         },
@@ -142,7 +142,7 @@ def test_csrf_accepts_double_submit_token() -> None:
 
 
 def test_signed_session_cookie_round_trip() -> None:
-    app = Fango()
+    app = Flasgo()
 
     @app.get("/counter")
     def counter() -> dict[str, int]:
@@ -155,15 +155,15 @@ def test_signed_session_cookie_round_trip() -> None:
 
     first = client.get("/counter")
     assert first.json() == {"count": 1}
-    session_cookie = _extract_cookie(first.headers.get("set-cookie", ""), "fango-session")
+    session_cookie = _extract_cookie(first.headers.get("set-cookie", ""), "flasgo-session")
     assert session_cookie is not None
 
-    second = client.get("/counter", headers={"cookie": f"fango-session={session_cookie}"})
+    second = client.get("/counter", headers={"cookie": f"flasgo-session={session_cookie}"})
     assert second.json() == {"count": 2}
 
 
 def test_flask_style_request_proxy_and_jsonify() -> None:
-    app = Fango()
+    app = Flasgo()
 
     @app.get("/inspect")
     def inspect_request() -> Response:
@@ -177,7 +177,7 @@ def test_flask_style_request_proxy_and_jsonify() -> None:
 
 
 def test_settings_mapping_applies_security_config() -> None:
-    app = Fango(settings={"CSRF_ENABLED": False, "ALLOWED_HOSTS": {"api.local"}})
+    app = Flasgo(settings={"CSRF_ENABLED": False, "ALLOWED_HOSTS": {"api.local"}})
 
     @app.post("/submit")
     def submit() -> str:
@@ -193,7 +193,7 @@ def test_settings_mapping_applies_security_config() -> None:
 
 
 def test_auth_and_current_user_context_with_permissions() -> None:
-    app = Fango()
+    app = Flasgo()
 
     def header_backend(req: Request) -> User | None:
         user_id = req.headers.get("x-user")
@@ -232,18 +232,18 @@ def test_auth_and_current_user_context_with_permissions() -> None:
 
 
 def test_default_secret_is_not_predictable_literal() -> None:
-    app = Fango()
+    app = Flasgo()
     assert app.security.secret_key != "dev-insecure-secret-change-this"
     assert len(app.security.secret_key) >= 32
 
 
 def test_short_secret_rejected_when_debug_false() -> None:
     with pytest.raises(ValueError):
-        Fango(settings={"DEBUG": False, "SECRET_KEY": "short"})
+        Flasgo(settings={"DEBUG": False, "SECRET_KEY": "short"})
 
 
 def test_csrf_rejects_mismatched_origin() -> None:
-    app = Fango()
+    app = Flasgo()
 
     @app.get("/seed")
     def seed() -> str:
@@ -255,13 +255,13 @@ def test_csrf_rejects_mismatched_origin() -> None:
 
     client = TestClient(app)
     seed_response = client.get("/seed")
-    csrf_token = _extract_cookie(seed_response.headers.get("set-cookie", ""), "fango-csrf")
+    csrf_token = _extract_cookie(seed_response.headers.get("set-cookie", ""), "flasgo-csrf")
     assert csrf_token is not None
 
     response = client.post(
         "/submit",
         headers={
-            "cookie": f"fango-csrf={csrf_token}",
+            "cookie": f"flasgo-csrf={csrf_token}",
             "x-csrf-token": csrf_token,
             "origin": "http://evil.local",
         },
@@ -270,7 +270,7 @@ def test_csrf_rejects_mismatched_origin() -> None:
 
 
 def test_invalid_response_header_is_blocked() -> None:
-    app = Fango(security=SecurityConfig(csrf_enabled=False))
+    app = Flasgo(security=SecurityConfig(csrf_enabled=False))
 
     @app.get("/bad")
     def bad() -> tuple[str, int, dict[str, str]]:
@@ -282,7 +282,7 @@ def test_invalid_response_header_is_blocked() -> None:
 
 
 def test_cache_weakening_header_is_overridden() -> None:
-    app = Fango(security=SecurityConfig(csrf_enabled=False))
+    app = Flasgo(security=SecurityConfig(csrf_enabled=False))
 
     @app.get("/public")
     def public() -> tuple[str, int, dict[str, str]]:
@@ -295,7 +295,7 @@ def test_cache_weakening_header_is_overridden() -> None:
 
 
 def test_cache_enforcement_can_be_disabled_explicitly() -> None:
-    app = Fango(
+    app = Flasgo(
         security=SecurityConfig(
             csrf_enabled=False,
             enforce_no_store_cache=False,
@@ -313,7 +313,7 @@ def test_cache_enforcement_can_be_disabled_explicitly() -> None:
 
 
 def test_request_body_limit_returns_413() -> None:
-    app = Fango(settings={"CSRF_ENABLED": False, "MAX_REQUEST_BODY_BYTES": 4})
+    app = Flasgo(settings={"CSRF_ENABLED": False, "MAX_REQUEST_BODY_BYTES": 4})
 
     @app.post("/echo")
     async def echo(request: Request) -> dict[str, int]:
@@ -326,7 +326,7 @@ def test_request_body_limit_returns_413() -> None:
 
 
 def test_security_failures_are_rate_limited() -> None:
-    app = Fango(
+    app = Flasgo(
         settings={
             "CSRF_ENABLED": False,
             "SECURITY_FAILURE_RATE_LIMIT": 2,
@@ -349,14 +349,14 @@ def test_security_failures_are_rate_limited() -> None:
 
 
 def test_security_event_logging_for_bad_host(caplog: pytest.LogCaptureFixture) -> None:
-    app = Fango(settings={"CSRF_ENABLED": False, "LOG_SECURITY_EVENTS": True})
+    app = Flasgo(settings={"CSRF_ENABLED": False, "LOG_SECURITY_EVENTS": True})
 
     @app.get("/")
     def home() -> str:
         return "ok"
 
     client = TestClient(app)
-    with caplog.at_level(logging.WARNING, logger="fango.security"):
+    with caplog.at_level(logging.WARNING, logger="flasgo.security"):
         response = client.get("/", headers={"host": "evil.example"})
 
     assert response.status_code == 400
@@ -364,7 +364,7 @@ def test_security_event_logging_for_bad_host(caplog: pytest.LogCaptureFixture) -
 
 
 def test_bearer_token_backend_helper() -> None:
-    app = Fango(settings={"CSRF_ENABLED": False})
+    app = Flasgo(settings={"CSRF_ENABLED": False})
 
     def validate_token(token: str) -> User | None:
         if token != "token-123":
@@ -394,7 +394,7 @@ def test_bearer_token_backend_helper() -> None:
 
 
 def test_auth_backend_exception_fails_closed() -> None:
-    app = Fango(settings={"CSRF_ENABLED": False})
+    app = Flasgo(settings={"CSRF_ENABLED": False})
 
     def broken_backend(req: Request) -> User | None:
         _ = req
@@ -413,12 +413,12 @@ def test_auth_backend_exception_fails_closed() -> None:
 
 
 def test_register_auth_backend_rejects_empty_name() -> None:
-    app = Fango()
+    app = Flasgo()
     with pytest.raises(ValueError):
         app.register_auth_backend("   ", lambda req: None)
 
 
 def test_authorize_rejects_empty_backend_name() -> None:
-    app = Fango()
+    app = Flasgo()
     with pytest.raises(ValueError):
         app.authorize(IsAuthenticated(), backend="  ")

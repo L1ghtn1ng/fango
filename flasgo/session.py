@@ -52,7 +52,7 @@ class SessionSigner:
         self,
         secret_key: str,
         *,
-        salt: str = "fango.session",
+        salt: str = "flasgo.session",
         max_clock_skew_seconds: int = 300,
     ) -> None:
         if max_clock_skew_seconds < 0:

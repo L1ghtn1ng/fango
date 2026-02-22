@@ -5,10 +5,10 @@ import json
 import time
 
 import pytest
-from fango import Fango, HTTPException, Request, User
-from fango.security import build_set_cookie
-from fango.session import SessionSigner, _b64encode, _hmac_digest
-from fango.testing import TestClient
+from flasgo import Flasgo, HTTPException, Request, User
+from flasgo.security import build_set_cookie
+from flasgo.session import SessionSigner, _b64encode, _hmac_digest
+from flasgo.testing import TestClient
 
 
 def _extract_cookie(set_cookie_header: str, name: str) -> str | None:
@@ -20,7 +20,7 @@ def _extract_cookie(set_cookie_header: str, name: str) -> str | None:
 
 
 def test_authorize_defaults_to_is_authenticated() -> None:
-    app = Fango(settings={"CSRF_ENABLED": False})
+    app = Flasgo(settings={"CSRF_ENABLED": False})
 
     def header_backend(req: Request) -> User | None:
         user_id = req.headers.get("x-user")
@@ -53,7 +53,7 @@ def test_request_body_stops_on_disconnect() -> None:
 
 
 def test_csrf_rejects_same_host_with_wrong_scheme() -> None:
-    app = Fango()
+    app = Flasgo()
 
     @app.get("/seed")
     def seed() -> str:
@@ -65,14 +65,14 @@ def test_csrf_rejects_same_host_with_wrong_scheme() -> None:
 
     client = TestClient(app)
     seed_response = client.get("/seed", scheme="https")
-    csrf_token = _extract_cookie(seed_response.headers.get("set-cookie", ""), "fango-csrf")
+    csrf_token = _extract_cookie(seed_response.headers.get("set-cookie", ""), "flasgo-csrf")
     assert csrf_token is not None
 
     rejected = client.post(
         "/submit",
         scheme="https",
         headers={
-            "cookie": f"fango-csrf={csrf_token}",
+            "cookie": f"flasgo-csrf={csrf_token}",
             "x-csrf-token": csrf_token,
             "origin": "http://localhost",
         },
@@ -81,7 +81,7 @@ def test_csrf_rejects_same_host_with_wrong_scheme() -> None:
         "/submit",
         scheme="https",
         headers={
-            "cookie": f"fango-csrf={csrf_token}",
+            "cookie": f"flasgo-csrf={csrf_token}",
             "x-csrf-token": csrf_token,
             "origin": "https://localhost",
         },

@@ -1,6 +1,6 @@
-# Fango
+# Flasgo
 
-Fango is an async-first Python web framework designed as a hybrid of:
+Flasgo is an async-first Python web framework designed as a hybrid of:
 - Flask ergonomics: decorator-based routing, minimal ceremony, quick iteration.
 - Django security defaults: CSRF protection, host validation, secure headers, signed sessions.
 
@@ -26,14 +26,14 @@ uv sync --group dev
 Create `app.py`:
 
 ```python
-from fango import Fango
+from flasgo import Flasgo
 
-app = Fango()
+app = Flasgo()
 
 
 @app.get("/")
 async def home():
-    return {"framework": "fango", "status": "ok"}
+    return {"framework": "flasgo", "status": "ok"}
 
 
 @app.post("/notes/<int:note_id>")
@@ -67,12 +67,12 @@ Use a production ASGI server process and configure secrets with environment vari
 
 ```python
 import os
-from fango import Fango
+from flasgo import Flasgo
 
-app = Fango(
+app = Flasgo(
     settings={
         "DEBUG": False,
-        "SECRET_KEY": os.environ["FANGO_SECRET_KEY"],
+        "SECRET_KEY": os.environ["FLASGO_SECRET_KEY"],
         "ALLOWED_HOSTS": {"api.example.com"},
         "CSRF_ENABLED": True,
         "SESSION_COOKIE_SECURE": True,
@@ -84,7 +84,7 @@ app = Fango(
 Run with workers:
 
 ```bash
-export FANGO_SECRET_KEY="$(openssl rand -hex 32)"
+export FLASGO_SECRET_KEY="$(openssl rand -hex 32)"
 uv run uvicorn app:app --host 0.0.0.0 --port 8000 --workers 4
 ```
 
@@ -111,9 +111,9 @@ uv run pytest
 
 ## API surface (initial)
 
-- `Fango.route`, `Fango.get`, `Fango.post`, `Fango.put`, `Fango.patch`, `Fango.delete`
-- `Fango.before_request`, `Fango.after_request`, `Fango.errorhandler`
-- `Fango.register_auth_backend`, `Fango.authorize`
+- `Flasgo.route`, `Flasgo.get`, `Flasgo.post`, `Flasgo.put`, `Flasgo.patch`, `Flasgo.delete`
+- `Flasgo.before_request`, `Flasgo.after_request`, `Flasgo.errorhandler`
+- `Flasgo.register_auth_backend`, `Flasgo.authorize`
 - Auth helpers: `bearer_token_backend`, `extract_bearer_token`
 - Flask-style path params: `<name>`, `<int:name>`, `<float:name>`, `<path:name>`
 - Optional OpenAPI spec + Swagger UI docs (disabled by default)
@@ -126,9 +126,9 @@ uv run pytest
 ## Flask-style globals
 
 ```python
-from fango import Fango, jsonify, request
+from flasgo import Flasgo, jsonify, request
 
-app = Fango()
+app = Flasgo()
 
 
 @app.get("/inspect")
@@ -139,7 +139,7 @@ def inspect():
 ## Django-like settings
 
 ```python
-app = Fango(
+app = Flasgo(
     settings={
         "SECRET_KEY": "replace-in-production",
         "ALLOWED_HOSTS": {"api.example.com"},
@@ -148,14 +148,14 @@ app = Fango(
 )
 ```
 
-You can also pass a Python module path string (`"myproject.settings"`), and Fango will load uppercase settings attributes.
+You can also pass a Python module path string (`"myproject.settings"`), and Flasgo will load uppercase settings attributes.
 
 ## Auth and permissions
 
 ```python
-from fango import Fango, HasScope, IsAuthenticated, User, bearer_token_backend
+from flasgo import Flasgo, HasScope, IsAuthenticated, User, bearer_token_backend
 
-app = Fango()
+app = Flasgo()
 
 
 def validate_token(token: str):
@@ -183,9 +183,9 @@ Auth behavior:
 For outbound URLs from user input, validate before fetching:
 
 ```python
-from fango import Fango
+from flasgo import Flasgo
 
-app = Fango(
+app = Flasgo(
     settings={
         "SSRF_ALLOWED_SCHEMES": {"https"},
         "SSRF_ALLOWED_HOSTS": {"api.example.com"},
@@ -195,11 +195,11 @@ app = Fango(
 safe_url = app.validate_outbound_url("https://api.example.com/data")
 ```
 
-By default, Fango blocks unsafe schemes, embedded credentials, localhost/private network targets, and unresolved hosts.
+By default, Flasgo blocks unsafe schemes, embedded credentials, localhost/private network targets, and unresolved hosts.
 
 ## Automatic API docs
 
-Fango can expose:
+Flasgo can expose:
 
 - OpenAPI JSON (default path: `/openapi.json`)
 - Swagger UI (default path: `/docs`)
@@ -207,7 +207,7 @@ Fango can expose:
 Docs are disabled by default for safer production posture. Enable and customize with settings:
 
 ```python
-app = Fango(
+app = Flasgo(
     settings={
         "ENABLE_DOCS": True,
         "DOCS_PATH": "/api-docs",

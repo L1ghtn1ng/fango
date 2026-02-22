@@ -32,9 +32,9 @@ BeforeMiddleware = Callable[[Request], ResponseValue | Awaitable[ResponseValue] 
 AfterMiddleware = Callable[[Request, Response], ResponseValue | Awaitable[ResponseValue]]
 ErrorHandler = Callable[[Request, Exception], ResponseValue | Awaitable[ResponseValue]]
 
-_request_ctx: ContextVar[Request | None] = ContextVar("fango_request", default=None)
-_session_ctx: ContextVar[Session | None] = ContextVar("fango_session", default=None)
-_user_ctx: ContextVar[User | None] = ContextVar("fango_user", default=None)
+_request_ctx: ContextVar[Request | None] = ContextVar("flasgo_request", default=None)
+_session_ctx: ContextVar[Session | None] = ContextVar("flasgo_session", default=None)
+_user_ctx: ContextVar[User | None] = ContextVar("flasgo_user", default=None)
 
 
 class _DefaultAuthBackend:
@@ -74,7 +74,7 @@ def user() -> User:
     return current
 
 
-class Fango:
+class Flasgo:
     def __init__(
         self,
         *,
@@ -94,7 +94,7 @@ class Fango:
         self._openapi_cache: dict[str, Any] | None = None
         self._openapi_dirty = True
         self._security_failures: dict[str, tuple[float, int]] = {}
-        self._logger = logging.getLogger("fango.security")
+        self._logger = logging.getLogger("flasgo.security")
         self.ssrf = SSRFGuard(
             SSRFConfig(
                 enabled=bool(self.settings.SSRF_ENABLED),

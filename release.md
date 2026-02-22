@@ -1,6 +1,6 @@
-# Fango Release Notes
+# Flasgo Release Notes
 
-This file documents how releases are cut and published for `fango`.
+This file documents how releases are cut and published for `flasgo`.
 
 ## Workflow summary
 

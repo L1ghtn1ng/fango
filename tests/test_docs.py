@@ -2,12 +2,12 @@ from __future__ import annotations
 
 from typing import Any, cast
 
-from fango import Fango
-from fango.testing import TestClient
+from flasgo import Flasgo
+from flasgo.testing import TestClient
 
 
 def test_openapi_json_contains_registered_routes() -> None:
-    app = Fango(settings={"ENABLE_DOCS": True})
+    app = Flasgo(settings={"ENABLE_DOCS": True})
 
     @app.get("/users/<int:user_id>")
     def get_user(user_id: int, expand: bool = False) -> dict[str, str]:
@@ -34,7 +34,7 @@ def test_openapi_json_contains_registered_routes() -> None:
 
 
 def test_docs_endpoint_serves_swagger_ui() -> None:
-    app = Fango(settings={"ENABLE_DOCS": True})
+    app = Flasgo(settings={"ENABLE_DOCS": True})
     client = TestClient(app)
 
     response = client.get("/docs")
@@ -46,7 +46,7 @@ def test_docs_endpoint_serves_swagger_ui() -> None:
 
 
 def test_openapi_spec_updates_after_new_route_registration() -> None:
-    app = Fango(settings={"ENABLE_DOCS": True})
+    app = Flasgo(settings={"ENABLE_DOCS": True})
 
     @app.get("/one")
     def one() -> dict[str, bool]:
@@ -66,7 +66,7 @@ def test_openapi_spec_updates_after_new_route_registration() -> None:
 
 
 def test_docs_can_be_disabled() -> None:
-    app = Fango(settings={"ENABLE_DOCS": False})
+    app = Flasgo(settings={"ENABLE_DOCS": False})
     client = TestClient(app)
 
     docs_response = client.get("/docs")
@@ -76,7 +76,7 @@ def test_docs_can_be_disabled() -> None:
 
 
 def test_docs_default_is_disabled() -> None:
-    app = Fango()
+    app = Flasgo()
     client = TestClient(app)
 
     docs_response = client.get("/docs")
@@ -86,7 +86,7 @@ def test_docs_default_is_disabled() -> None:
 
 
 def test_custom_docs_paths_work() -> None:
-    app = Fango(
+    app = Flasgo(
         settings={
             "ENABLE_DOCS": True,
             "DOCS_PATH": "/api-docs",
@@ -103,7 +103,7 @@ def test_custom_docs_paths_work() -> None:
 
 
 def test_docs_endpoint_rejects_unsafe_method() -> None:
-    app = Fango(settings={"CSRF_ENABLED": False, "ENABLE_DOCS": True})
+    app = Flasgo(settings={"CSRF_ENABLED": False, "ENABLE_DOCS": True})
     client = TestClient(app)
 
     response = client.post("/docs")

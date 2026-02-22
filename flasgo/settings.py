@@ -30,14 +30,14 @@ class Settings:
     ENFORCE_ALLOWED_HOSTS: bool = True
 
     CSRF_ENABLED: bool = True
-    CSRF_COOKIE_NAME: str = "fango-csrf"
+    CSRF_COOKIE_NAME: str = "flasgo-csrf"
     CSRF_HEADER_NAME: str = "x-csrf-token"
     CSRF_TRUSTED_ORIGINS: set[str] = field(default_factory=set)
     CSRF_CHECK_ORIGIN: bool = True
     CSRF_REQUIRE_ORIGIN: bool = True
     CSRF_COOKIE_SECURE: bool = True
 
-    SESSION_COOKIE_NAME: str = "fango-session"
+    SESSION_COOKIE_NAME: str = "flasgo-session"
     SESSION_COOKIE_MAX_AGE: int = 60 * 60 * 24 * 7
     SESSION_COOKIE_SECURE: bool = True
     SESSION_COOKIE_HTTP_ONLY: bool = True
@@ -52,7 +52,7 @@ class Settings:
     ENABLE_DOCS: bool = False
     DOCS_PATH: str = "/docs"
     OPENAPI_PATH: str = "/openapi.json"
-    API_TITLE: str = "Fango API"
+    API_TITLE: str = "Flasgo API"
     API_VERSION: str = "0.1.0"
     API_DESCRIPTION: str = ""
     SSRF_ENABLED: bool = True

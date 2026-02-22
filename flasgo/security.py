@@ -59,7 +59,7 @@ class SecurityConfig:
     enforce_allowed_hosts: bool = True
 
     csrf_enabled: bool = True
-    csrf_cookie_name: str = "fango-csrf"
+    csrf_cookie_name: str = "flasgo-csrf"
     csrf_header_name: str = "x-csrf-token"
     csrf_trusted_origins: set[str] = field(default_factory=set)
     csrf_check_origin: bool = True
@@ -67,7 +67,7 @@ class SecurityConfig:
     csrf_safe_methods: frozenset[str] = field(default_factory=lambda: frozenset({"GET", "HEAD", "OPTIONS", "TRACE"}))
     csrf_cookie_secure: bool = True
 
-    session_cookie_name: str = "fango-session"
+    session_cookie_name: str = "flasgo-session"
     session_cookie_max_age: int = 60 * 60 * 24 * 7
     session_cookie_secure: bool = True
     session_cookie_http_only: bool = True
