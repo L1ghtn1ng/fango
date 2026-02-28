@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "flasgo"
-version = "0.3.0"
+version = "0.3.1"
 description = "Async-first Python web framework with Flask ergonomics and Django-inspired security defaults."
 readme = "README.md"
 requires-python = ">=3.14"
@@ -26,6 +26,7 @@ classifiers = [
 dependencies = [
     "uvicorn[standard]==0.41.0",
     "Jinja2==3.1.6",
+    "watchfiles==1.1.1",
 ]
 
 [project.urls]
