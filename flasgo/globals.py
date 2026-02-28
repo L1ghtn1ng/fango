@@ -45,3 +45,12 @@ def jsonify(
     headers: dict[str, str] | None = None,
 ) -> Response:
     return Response.json(value, status_code=status_code, headers=headers)
+
+
+def redirect(
+    location: str,
+    *,
+    status_code: int = 302,
+    headers: dict[str, str] | None = None,
+) -> Response:
+    return Response.redirect(location, status_code=status_code, headers=headers)

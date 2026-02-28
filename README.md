@@ -38,9 +38,22 @@ uv sync --group dev
 Create `app.py`:
 
 ```python
-from flasgo import Flasgo
+import os
+import secrets
 
-app = Flasgo()
+from flasgo import Flasgo, Request, Response, redirect
+
+app = Flasgo(
+    static_folder="static",
+    settings={
+        "DEBUG": True,
+        "SECRET_KEY": os.environ.get("FLASGO_SECRET_KEY", secrets.token_urlsafe(32)),
+        "ALLOWED_HOSTS": {"127.0.0.1", "localhost"},
+        "CSRF_ENABLED": True,
+        "SESSION_COOKIE_SECURE": False,
+        "CSRF_COOKIE_SECURE": False,
+    },
+)
 
 
 @app.get("/")
@@ -48,24 +61,46 @@ async def home():
     return {"framework": "flasgo", "status": "ok"}
 
 
-@app.post("/notes/<int:note_id>")
-async def update_note(note_id: int):
-    return {"updated": note_id}
+@app.post("/contact")
+async def contact(request: Request) -> Response:
+    form = await request.form()
+    if form.get("email"):
+        return redirect("/thanks")
+    return Response.json({"error": "email is required"}, status_code=400)
 
 
 if __name__ == "__main__":
-    app.run(host="127.0.0.1", port=8000)
+    app.run(host="127.0.0.1", port=8000, reload=True)
 ```
 
 Run:
 
 ```bash
-uv run python app.py
+export FLASGO_SECRET_KEY="$(openssl rand -hex 32)"
+uv run flasgo run app.py --reload
 ```
 
-## Development run (recommended)
+## Development run
 
-Uses `uvicorn` with reload while building locally:
+Built-in dev server with automatic reload:
+
+```bash
+uv run flasgo run app.py --reload
+```
+
+Or explicitly:
+
+```python
+app.run(host="127.0.0.1", port=8000, reload=True)
+```
+
+The CLI also accepts import strings:
+
+```bash
+uv run flasgo run package.module:app --reload
+```
+
+You can still use `uvicorn` with reload:
 
 ```bash
 uv run uvicorn app:app --reload --host 127.0.0.1 --port 8000
@@ -89,6 +124,7 @@ app = Flasgo(
         "CSRF_ENABLED": True,
         "SESSION_COOKIE_SECURE": True,
         "CSRF_COOKIE_SECURE": True,
+        "SESSION_COOKIE_HTTP_ONLY": True,
     }
 )
 ```
@@ -108,10 +144,13 @@ Put a reverse proxy/load balancer in front (Caddy, Cloudflare, etc.) for TLS ter
 - CSRF double-submit cookie defense for unsafe methods.
 - Signed session cookies (HMAC-SHA256).
 - No-store cache headers by default to reduce sensitive data caching (CWE-524 mitigation).
+- Static file path traversal and symlink escape protections.
 - Request body/head limits and read timeouts in the built-in dev server.
 - Optional per-client throttling for repeated security failures (`429`).
 - Security event logging for host/CSRF/authz denials.
 - Hardened headers (`CSP`, `HSTS`, `X-Frame-Options`, `Referrer-Policy`, etc.).
+
+These defaults are intended to help teams avoid common OWASP Top 10 2025 failure modes around broken access control, cryptographic failures, security misconfiguration, software and data integrity issues, and SSRF.
 
 ## Developer commands
 
@@ -123,12 +162,16 @@ uv run pytest
 
 ## API surface (initial)
 
+- CLI: `flasgo run app.py --reload`, `flasgo run package.module:app --reload`
 - `Flasgo.route`, `Flasgo.get`, `Flasgo.post`, `Flasgo.put`, `Flasgo.patch`, `Flasgo.delete`
 - `Flasgo.before_request`, `Flasgo.after_request`, `Flasgo.errorhandler`
 - `Flasgo.register_auth_backend`, `Flasgo.authorize`
 - `Flasgo.configure_templates`, `Flasgo.render_template`
+- `Flasgo.configure_static`, `Flasgo.test_client`
 - Auth helpers: `bearer_token_backend`, `extract_bearer_token`
 - Templating helpers: `JinjaTemplates`, `render_template`, `Response.template`
+- Request helpers: `await request.form()`, `UploadedFile`
+- Response helpers: `redirect`, `Response.redirect`
 - Flask-style path params: `<name>`, `<int:name>`, `<float:name>`, `<path:name>`
 - Optional OpenAPI spec + Swagger UI docs (disabled by default)
 - Response coercion:
@@ -182,6 +225,63 @@ If you only need the rendered string, use the app helper:
 ```python
 html = app.render_template("home.html", {"title": "Welcome"})
 ```
+
+## Forms
+
+Flasgo has built-in parsing for `application/x-www-form-urlencoded` and `multipart/form-data`:
+
+```python
+from flasgo import Flasgo, Request
+
+app = Flasgo()
+
+
+@app.post("/signup")
+async def signup(request: Request) -> dict[str, object]:
+    form = await request.form()
+    avatar = form.file("avatar")
+    return {
+        "email": form.get("email"),
+        "interests": form.getlist("interests"),
+        "avatar_name": avatar.filename if avatar else None,
+    }
+```
+
+`await request.form()` returns a `FormData` object with `get`, `getlist`, `file`, and `filelist`.
+
+## Static files
+
+You can register static assets at app construction time or later:
+
+```python
+from flasgo import Flasgo
+
+app = Flasgo(static_folder="static")
+app.configure_static("assets", url_path="/assets", cache_max_age=86400)
+```
+
+Static responses use safe path normalization, block dotfiles and directory escapes, and include `ETag` and `Last-Modified` headers for cache validation.
+
+## Testing
+
+Flasgo ships with an official test client:
+
+```python
+from flasgo import Flasgo
+
+# Testing example only. For browser-facing production apps keep CSRF enabled.
+app = Flasgo(settings={"CSRF_ENABLED": False})
+client = app.test_client()
+
+response = client.post("/api/login", json={"username": "alice"})
+assert response.status_code == 200
+```
+
+The client supports cookies, `json=`, `data=`, multipart `files=`, `follow_redirects=True`, and async requests via `await client.arequest(...)`.
+
+## Flask migration guide
+
+See [MIGRATING_FROM_FLASK.md](MIGRATING_FROM_FLASK.md) for the canonical Flask to Flasgo migration guide, including official examples for templates, JSON routes, redirects, forms, static files, testing, and ASGI deployment.
 
 ## Django-like settings
 

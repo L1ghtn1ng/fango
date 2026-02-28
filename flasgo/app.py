@@ -7,9 +7,17 @@ import time
 from collections.abc import Awaitable, Callable, Iterable, Mapping, Sequence
 from contextvars import ContextVar
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
-from .auth import AuthBackend, AuthIdentity, AuthResult, IsAuthenticated, Permission, PermissionLike, User
+from .auth import (
+    AuthBackend,
+    AuthIdentity,
+    AuthResult,
+    IsAuthenticated,
+    Permission,
+    PermissionLike,
+    User,
+)
 from .exceptions import HTTPException
 from .openapi import build_openapi_spec
 from .request import Request
@@ -27,8 +35,12 @@ from .server import run_dev_server
 from .session import Session, SessionSigner
 from .settings import SettingsInput, load_settings
 from .ssrf import SSRFConfig, SSRFGuard
+from .staticfiles import StaticDirectory, build_static_response, resolve_static_directory
 from .templating import JinjaTemplates
 from .types import Receive, Scope, Send
+
+if TYPE_CHECKING:
+    from .testing import TestClient
 
 BeforeMiddleware = Callable[[Request], ResponseValue | Awaitable[ResponseValue] | None]
 AfterMiddleware = Callable[[Request, Response], ResponseValue | Awaitable[ResponseValue]]
@@ -83,11 +95,15 @@ class Flasgo:
         settings: SettingsInput | None = None,
         security: SecurityConfig | None = None,
         templates: JinjaTemplates | None = None,
+        static_folder: str | Path | None = None,
+        static_url_path: str = "/static",
+        static_cache_max_age: int = 3600,
     ) -> None:
         self.settings = load_settings(settings)
         self.security = security or self.settings.to_security_config()
         self._validate_security_config()
         self._routes: list[Route] = []
+        self._static_directories: list[StaticDirectory] = []
         self._before: list[BeforeMiddleware] = []
         self._after: list[AfterMiddleware] = []
         self._error_handlers: dict[type[Exception], ErrorHandler] = {}
@@ -109,6 +125,12 @@ class Flasgo:
                 allow_unresolvable_hosts=bool(self.settings.SSRF_ALLOW_UNRESOLVABLE_HOSTS),
             )
         )
+        if static_folder is not None:
+            self.configure_static(
+                static_folder,
+                url_path=static_url_path,
+                cache_max_age=static_cache_max_age,
+            )
 
     async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
         if scope.get("type") != "http":
@@ -138,7 +160,7 @@ class Flasgo:
             if self.security.csrf_enabled:
                 ensure_csrf_cookie(req, response, self.security)
             self._persist_session(req, response)
-            await response.send(send)
+            await response.send(send, head_only=req.method == "HEAD")
         except Exception:
             self._log_security_event(
                 logging.ERROR,
@@ -147,7 +169,7 @@ class Flasgo:
             )
             fallback = Response.text("Internal Server Error", status_code=500)
             apply_security_headers(fallback, self.security)
-            await fallback.send(send)
+            await fallback.send(send, head_only=req.method == "HEAD")
 
     def route(
         self,
@@ -231,12 +253,21 @@ class Flasgo:
         self._routes.append(Route(path, normalized, endpoint, name=name))
         self._openapi_dirty = True
 
-    def run(self, *, host: str = "127.0.0.1", port: int = 8000) -> None:
+    def run(
+        self,
+        *,
+        host: str = "127.0.0.1",
+        port: int = 8000,
+        reload: bool | None = None,
+        reload_dirs: Sequence[str | Path] | None = None,
+    ) -> None:
         asyncio.run(
             run_dev_server(
                 self,
                 host,
                 port,
+                reload=bool(self.settings.DEBUG) if reload is None else reload,
+                reload_dirs=reload_dirs,
                 max_request_body_bytes=self.security.max_request_body_bytes,
                 max_request_head_bytes=self.security.max_request_head_bytes,
                 request_read_timeout_seconds=self.security.request_read_timeout_seconds,
@@ -267,6 +298,31 @@ class Flasgo:
         if self.templates is None:
             raise RuntimeError("Templates are not configured. Call configure_templates(...) first.")
         return self.templates.render(template_name, context)
+
+    def configure_static(
+        self,
+        directory: str | Path,
+        *,
+        url_path: str = "/static",
+        cache_max_age: int = 3600,
+    ) -> None:
+        static_directory = resolve_static_directory(
+            directory,
+            url_path=url_path,
+            cache_max_age=cache_max_age,
+        )
+        self._static_directories.append(static_directory)
+        self.add_route(
+            f"{static_directory.url_path}/<path:filename>",
+            self._build_static_endpoint(static_directory),
+            methods=("GET",),
+            name=f"static:{static_directory.url_path}",
+        )
+
+    def test_client(self) -> TestClient:
+        from .testing import TestClient
+
+        return TestClient(self)
 
     def validate_outbound_url(self, url: str) -> str:
         return self.ssrf.validate_url(url)
@@ -392,6 +448,12 @@ class Flasgo:
         else:
             value = match.endpoint(**match.params)
         return await _maybe_await(value)
+
+    def _build_static_endpoint(self, directory: StaticDirectory) -> Endpoint:
+        def endpoint(*, request: Request, filename: str) -> Response:
+            return build_static_response(directory, filename, request=request)
+
+        return endpoint
 
     def _match_route(self, path: str, method: str) -> tuple[MatchResult | None, bool]:
         path_exists = False

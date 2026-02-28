@@ -36,6 +36,9 @@ Issues = "https://github.com/L1ghtn1ng/flasgo/issues"
 Releases = "https://github.com/L1ghtn1ng/flasgo/releases"
 License = "https://github.com/L1ghtn1ng/flasgo/blob/main/LICENSE"
 
+[project.scripts]
+flasgo = "flasgo.cli:main"
+
 [dependency-groups]
 dev = [
   "pytest==9.0.2",

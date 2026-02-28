@@ -142,8 +142,10 @@ def csrf_is_valid(request: Request, config: SecurityConfig) -> bool:
 
 def apply_security_headers(response: Response, config: SecurityConfig) -> None:
     for key, value in config.security_headers.items():
+        if key in {"cache-control", "pragma", "expires"} and response.allow_public_cache:
+            continue
         response.headers.setdefault(key, value)
-    if config.enforce_no_store_cache:
+    if config.enforce_no_store_cache and not response.allow_public_cache:
         response.headers["cache-control"] = "no-store, no-cache, must-revalidate, max-age=0"
         response.headers["pragma"] = "no-cache"
         response.headers["expires"] = "0"

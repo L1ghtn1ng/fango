@@ -1,12 +1,17 @@
 from __future__ import annotations
 
 import asyncio
-from collections.abc import Awaitable, Callable
+import os
+import shlex
+import sys
+from collections.abc import Awaitable, Callable, Sequence
+from pathlib import Path
 from urllib.parse import urlsplit
 
 from .types import Message, Receive, Scope, Send
 
 ASGIHandler = Callable[[Scope, Receive, Send], Awaitable[None]]
+_RELOAD_ENV = "FLASGO_RUN_MAIN"
 
 
 def _parse_request_head(head: bytes) -> tuple[str, str, str, list[tuple[bytes, bytes]]]:
@@ -65,10 +70,16 @@ async def run_dev_server(
     host: str,
     port: int,
     *,
+    reload: bool = False,
+    reload_dirs: Sequence[str | Path] | None = None,
     max_request_body_bytes: int = 1_048_576,
     max_request_head_bytes: int = 16_384,
     request_read_timeout_seconds: float = 10.0,
 ) -> None:
+    if reload and os.environ.get(_RELOAD_ENV) != "true":
+        await asyncio.to_thread(_run_with_reload, reload_dirs=reload_dirs)
+        return
+
     server = await asyncio.start_server(
         lambda r, w: _handle_connection(
             app,
@@ -85,6 +96,61 @@ async def run_dev_server(
     print(f"Flasgo dev server listening on {addrs}")
     async with server:
         await server.serve_forever()
+
+
+def _run_with_reload(
+    *,
+    reload_dirs: Sequence[str | Path] | None = None,
+) -> None:
+    try:
+        from watchfiles import run_process
+    except ImportError as exc:
+        raise RuntimeError("Reload support requires the 'watchfiles' package.") from exc
+
+    watch_paths = tuple(str(_resolve_reload_dir(path)) for path in (reload_dirs or (Path.cwd(),)))
+    command = _build_reload_command()
+    previous = os.environ.get(_RELOAD_ENV)
+    os.environ[_RELOAD_ENV] = "true"
+    try:
+        print(f"Flasgo reloader watching {', '.join(watch_paths)}")
+        run_process(
+            *watch_paths,
+            target=command,
+            target_type="command",
+            callback=_log_reload_changes,
+            ignore_permission_denied=True,
+        )
+    finally:
+        if previous is None:
+            os.environ.pop(_RELOAD_ENV, None)
+        else:
+            os.environ[_RELOAD_ENV] = previous
+
+
+def _resolve_reload_dir(path: str | Path) -> Path:
+    resolved = Path(path).expanduser().resolve()
+    if not resolved.exists():
+        msg = f"Reload directory does not exist: {resolved}"
+        raise ValueError(msg)
+    if not resolved.is_dir():
+        msg = f"Reload directory is not a directory: {resolved}"
+        raise ValueError(msg)
+    return resolved
+
+
+def _build_reload_command() -> str:
+    argv = list(getattr(sys, "orig_argv", []))
+    if not argv:
+        argv = [sys.executable, *sys.argv]
+    if len(argv) < 2 and not Path(argv[0]).exists():
+        raise RuntimeError("Reload support requires running Flasgo from a Python script or module.")
+    return shlex.join(argv)
+
+
+def _log_reload_changes(changes: set[tuple[object, str]]) -> None:
+    changed_paths = ", ".join(sorted(path for _, path in changes))
+    if changed_paths:
+        print(f"Flasgo reload triggered by changes in: {changed_paths}")
 
 
 async def _handle_connection(

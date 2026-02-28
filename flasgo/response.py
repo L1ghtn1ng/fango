@@ -25,6 +25,7 @@ class Response:
     headers: dict[str, str] = field(default_factory=dict)
     cookies: list[str] = field(default_factory=list)
     content_type: str = "text/plain; charset=utf-8"
+    allow_public_cache: bool = False
 
     def __post_init__(self) -> None:
         self.headers = {key.lower(): value for key, value in self.headers.items()}
@@ -35,7 +36,7 @@ class Response:
         for cookie in self.cookies:
             _validate_set_cookie(cookie)
 
-    async def send(self, send: Send) -> None:
+    async def send(self, send: Send, *, head_only: bool = False) -> None:
         for key, value in self.headers.items():
             _validate_header(key, value)
         for cookie in self.cookies:
@@ -49,7 +50,8 @@ class Response:
                 "headers": raw_headers,
             }
         )
-        await send({"type": "http.response.body", "body": self.body, "more_body": False})
+        body = b"" if head_only else self.body
+        await send({"type": "http.response.body", "body": body, "more_body": False})
 
     @classmethod
     def text(
@@ -118,6 +120,24 @@ class Response:
             status_code=status_code,
             headers=headers or {},
             content_type="application/json",
+        )
+
+    @classmethod
+    def redirect(
+        cls,
+        location: str,
+        *,
+        status_code: int = 302,
+        headers: dict[str, str] | None = None,
+    ) -> Response:
+        response_headers = {"location": location}
+        if headers:
+            response_headers.update(headers)
+        return cls(
+            body=b"",
+            status_code=status_code,
+            headers=response_headers,
+            content_type="text/plain; charset=utf-8",
         )
 
 
