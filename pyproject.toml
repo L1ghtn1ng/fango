@@ -10,10 +10,31 @@ readme = "README.md"
 requires-python = ">=3.14"
 license = { text = "BSD 3-Clause" }
 authors = [{ name = "Jay Townsend" }]
+maintainers = [{ name = "Jay Townsend" }]
+keywords = ["asgi", "async", "flasgo", "framework", "jinja2", "security", "web"]
+classifiers = [
+    "Development Status :: 3 - Beta",
+    "Framework :: AsyncIO",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: BSD License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.14",
+    "Topic :: Internet :: WWW/HTTP",
+    "Topic :: Software Development :: Libraries :: Application Frameworks",
+]
 dependencies = [
     "uvicorn[standard]==0.41.0",
     "Jinja2==3.1.6",
 ]
+
+[project.urls]
+Homepage = "https://github.com/L1ghtn1ng/flasgo"
+Documentation = "https://github.com/L1ghtn1ng/flasgo#readme"
+Repository = "https://github.com/L1ghtn1ng/flasgo"
+Issues = "https://github.com/L1ghtn1ng/flasgo/issues"
+Releases = "https://github.com/L1ghtn1ng/flasgo/releases"
+License = "https://github.com/L1ghtn1ng/flasgo/blob/main/LICENSE"
 
 [dependency-groups]
 dev = [
