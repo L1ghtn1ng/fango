@@ -6,11 +6,16 @@ import shlex
 import sys
 from collections.abc import Awaitable, Callable, Sequence
 from pathlib import Path
+from typing import TYPE_CHECKING
 from urllib.parse import urlsplit
 
 from .types import Message, Receive, Scope, Send
 
+if TYPE_CHECKING:
+    from watchfiles import Change
+
 ASGIHandler = Callable[[Scope, Receive, Send], Awaitable[None]]
+type ReloadChanges = set[tuple[Change, str]]
 _RELOAD_ENV = "FLASGO_RUN_MAIN"
 
 
@@ -147,7 +152,7 @@ def _build_reload_command() -> str:
     return shlex.join(argv)
 
 
-def _log_reload_changes(changes: set[tuple[object, str]]) -> None:
+def _log_reload_changes(changes: ReloadChanges) -> None:
     changed_paths = ", ".join(sorted(path for _, path in changes))
     if changed_paths:
         print(f"Flasgo reload triggered by changes in: {changed_paths}")

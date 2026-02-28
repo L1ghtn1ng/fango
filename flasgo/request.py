@@ -5,6 +5,7 @@ from collections.abc import Iterator, Mapping
 from dataclasses import dataclass, field
 from email.parser import BytesParser
 from email.policy import default
+from typing import overload
 from urllib.parse import parse_qs
 
 from .exceptions import HTTPException
@@ -79,7 +80,19 @@ class FormData(Mapping[str, str]):
     def __len__(self) -> int:
         return len(self._fields)
 
-    def get(self, key: str, default: str | None = None) -> str | None:
+    @overload
+    def get(self, key: str, /) -> str | None: ...
+
+    @overload
+    def get(self, key: str, /, default: str) -> str: ...
+
+    @overload
+    def get(self, key: str, /, default: None) -> str | None: ...
+
+    @overload
+    def get(self, key: str, /, default: object) -> str | object: ...
+
+    def get(self, key: str, /, default: object = None) -> str | object:
         values = self._fields.get(key)
         if not values:
             return default
@@ -128,7 +141,8 @@ def _parse_multipart_form(body: bytes, content_type: str) -> FormData:
         if not isinstance(name, str) or not name:
             continue
 
-        payload = part.get_payload(decode=True) or b""
+        decoded_payload = part.get_payload(decode=True)
+        payload = decoded_payload if isinstance(decoded_payload, bytes) else b""
         headers = {key.lower(): value for key, value in part.items()}
         filename = part.get_filename()
         if filename:

@@ -10,8 +10,7 @@ from flasgo import cli as cli_module
 def test_load_app_from_python_file(tmp_path: Path) -> None:
     app_file = tmp_path / "app.py"
     app_file.write_text(
-        "from flasgo import Flasgo\n"
-        "app = Flasgo(settings={'CSRF_ENABLED': False})\n",
+        "from flasgo import Flasgo\napp = Flasgo(settings={'CSRF_ENABLED': False})\n",
         encoding="utf-8",
     )
 
@@ -28,8 +27,7 @@ def test_load_app_from_import_string() -> None:
 def test_run_command_defaults_reload_dir_to_script_parent(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     app_file = tmp_path / "app.py"
     app_file.write_text(
-        "from flasgo import Flasgo\n"
-        "app = Flasgo(settings={'CSRF_ENABLED': False})\n",
+        "from flasgo import Flasgo\napp = Flasgo(settings={'CSRF_ENABLED': False})\n",
         encoding="utf-8",
     )
 

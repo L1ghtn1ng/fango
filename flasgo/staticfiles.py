@@ -73,7 +73,7 @@ def build_static_response(
         raise HTTPException(404, "Not Found")
 
     stat = resolved.stat()
-    etag = f"\"{stat.st_mtime_ns:x}-{stat.st_size:x}\""
+    etag = f'"{stat.st_mtime_ns:x}-{stat.st_size:x}"'
     if request.headers.get("if-none-match") == etag:
         return Response(
             body=b"",

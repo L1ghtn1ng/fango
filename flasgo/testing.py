@@ -16,17 +16,20 @@ type RequestData = Mapping[str, FormValue | Sequence[FormValue]] | Sequence[tupl
 
 
 def _flatten_data(data: RequestData) -> list[tuple[str, str]]:
-    if isinstance(data, Mapping):
-        items = data.items()
-    else:
-        items = data
-
     pairs: list[tuple[str, str]] = []
-    for key, value in items:
+    if isinstance(data, Mapping):
+        for key, value in data.items():
+            if isinstance(value, Sequence) and not isinstance(value, (str, bytes, bytearray)):
+                pairs.extend((str(key), str(item)) for item in value)
+                continue
+            pairs.append((str(key), str(value)))
+        return pairs
+
+    for key, value in data:
         if isinstance(value, Sequence) and not isinstance(value, (str, bytes, bytearray)):
-            pairs.extend((key, str(item)) for item in value)
+            pairs.extend((str(key), str(item)) for item in value)
             continue
-        pairs.append((key, str(value)))
+        pairs.append((str(key), str(value)))
     return pairs
 
 

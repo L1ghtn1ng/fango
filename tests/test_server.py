@@ -2,7 +2,9 @@ from __future__ import annotations
 
 import os
 import types
+from collections.abc import Coroutine
 from pathlib import Path
+from typing import Any
 
 import pytest
 from flasgo import Flasgo
@@ -46,13 +48,13 @@ def test_run_with_reload_spawns_current_command(monkeypatch: pytest.MonkeyPatch,
 
 def test_app_run_uses_debug_reload_by_default(monkeypatch: pytest.MonkeyPatch) -> None:
     app = Flasgo(settings={"DEBUG": True})
-    seen: dict[str, object] = {}
+    seen: dict[str, Any] = {}
 
     async def fake_run_dev_server(*args: object, **kwargs: object) -> None:
         seen["args"] = args
         seen["kwargs"] = kwargs
 
-    def fake_asyncio_run(coro: object) -> None:
+    def fake_asyncio_run(coro: Coroutine[Any, Any, None]) -> None:
         try:
             coro.send(None)
         except StopIteration:
