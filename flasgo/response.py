@@ -4,9 +4,15 @@ import json
 import re
 from collections.abc import Mapping
 from dataclasses import dataclass, field
-from typing import Any
+from pathlib import Path
+from typing import TYPE_CHECKING, Any
 
 from .types import Send
+
+if TYPE_CHECKING:
+    from collections.abc import Sequence
+
+    from .templating import JinjaTemplates
 
 Headers = Mapping[str, str]
 _HEADER_NAME_RE = re.compile(r"^[!#$%&'*+\-.^_`|~0-9A-Za-z]+$")
@@ -73,6 +79,29 @@ class Response:
             status_code=status_code,
             headers=headers or {},
             content_type="text/html; charset=utf-8",
+        )
+
+    @classmethod
+    def template(
+        cls,
+        template_name: str,
+        *,
+        templates: JinjaTemplates | None = None,
+        template_dirs: str | Path | Sequence[str | Path] | None = None,
+        context: Mapping[str, Any] | None = None,
+        status_code: int = 200,
+        headers: dict[str, str] | None = None,
+    ) -> Response:
+        from .templating import JinjaTemplates
+
+        if templates is None:
+            if template_dirs is None:
+                raise ValueError("templates or template_dirs must be provided.")
+            templates = JinjaTemplates(template_dirs)
+        return cls.html(
+            templates.render(template_name, context),
+            status_code=status_code,
+            headers=headers,
         )
 
     @classmethod

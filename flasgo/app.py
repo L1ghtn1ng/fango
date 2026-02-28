@@ -4,8 +4,9 @@ import asyncio
 import inspect
 import logging
 import time
-from collections.abc import Awaitable, Callable, Iterable
+from collections.abc import Awaitable, Callable, Iterable, Mapping, Sequence
 from contextvars import ContextVar
+from pathlib import Path
 from typing import Any
 
 from .auth import AuthBackend, AuthIdentity, AuthResult, IsAuthenticated, Permission, PermissionLike, User
@@ -26,6 +27,7 @@ from .server import run_dev_server
 from .session import Session, SessionSigner
 from .settings import SettingsInput, load_settings
 from .ssrf import SSRFConfig, SSRFGuard
+from .templating import JinjaTemplates
 from .types import Receive, Scope, Send
 
 BeforeMiddleware = Callable[[Request], ResponseValue | Awaitable[ResponseValue] | None]
@@ -80,6 +82,7 @@ class Flasgo:
         *,
         settings: SettingsInput | None = None,
         security: SecurityConfig | None = None,
+        templates: JinjaTemplates | None = None,
     ) -> None:
         self.settings = load_settings(settings)
         self.security = security or self.settings.to_security_config()
@@ -95,6 +98,7 @@ class Flasgo:
         self._openapi_dirty = True
         self._security_failures: dict[str, tuple[float, int]] = {}
         self._logger = logging.getLogger("flasgo.security")
+        self.templates = templates
         self.ssrf = SSRFGuard(
             SSRFConfig(
                 enabled=bool(self.settings.SSRF_ENABLED),
@@ -238,6 +242,31 @@ class Flasgo:
                 request_read_timeout_seconds=self.security.request_read_timeout_seconds,
             )
         )
+
+    def configure_templates(
+        self,
+        template_dirs: str | Path | Sequence[str | Path],
+        *,
+        globals: Mapping[str, Any] | None = None,
+        filters: Mapping[str, Callable[..., Any]] | None = None,
+        tests: Mapping[str, Callable[..., Any]] | None = None,
+        enable_async: bool = False,
+        max_template_bytes: int = 262_144,
+    ) -> JinjaTemplates:
+        self.templates = JinjaTemplates(
+            template_dirs,
+            globals=globals,
+            filters=filters,
+            tests=tests,
+            enable_async=enable_async,
+            max_template_bytes=max_template_bytes,
+        )
+        return self.templates
+
+    def render_template(self, template_name: str, context: Mapping[str, Any] | None = None) -> str:
+        if self.templates is None:
+            raise RuntimeError("Templates are not configured. Call configure_templates(...) first.")
+        return self.templates.render(template_name, context)
 
     def validate_outbound_url(self, url: str) -> str:
         return self.ssrf.validate_url(url)

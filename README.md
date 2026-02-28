@@ -126,7 +126,9 @@ uv run pytest
 - `Flasgo.route`, `Flasgo.get`, `Flasgo.post`, `Flasgo.put`, `Flasgo.patch`, `Flasgo.delete`
 - `Flasgo.before_request`, `Flasgo.after_request`, `Flasgo.errorhandler`
 - `Flasgo.register_auth_backend`, `Flasgo.authorize`
+- `Flasgo.configure_templates`, `Flasgo.render_template`
 - Auth helpers: `bearer_token_backend`, `extract_bearer_token`
+- Templating helpers: `JinjaTemplates`, `render_template`, `Response.template`
 - Flask-style path params: `<name>`, `<int:name>`, `<float:name>`, `<path:name>`
 - Optional OpenAPI spec + Swagger UI docs (disabled by default)
 - Response coercion:
@@ -146,6 +148,39 @@ app = Flasgo()
 @app.get("/inspect")
 def inspect():
     return jsonify({"method": request.method, "path": request.path})
+```
+
+## Templating
+
+Flasgo includes a Jinja2 wrapper with secure defaults for HTML rendering:
+
+- Sandboxed environment
+- Strict undefined variables
+- Autoescaping enabled by default
+- Loader protections against path traversal and symlink escapes outside configured template roots
+
+Create the environment once during app startup and reuse it:
+
+```python
+from flasgo import Flasgo, Response
+
+app = Flasgo()
+app.configure_templates("templates")
+
+
+@app.get("/")
+def home() -> Response:
+    return Response.template(
+        "home.html",
+        templates=app.templates,
+        context={"title": "Welcome"},
+    )
+```
+
+If you only need the rendered string, use the app helper:
+
+```python
+html = app.render_template("home.html", {"title": "Welcome"})
 ```
 
 ## Django-like settings
